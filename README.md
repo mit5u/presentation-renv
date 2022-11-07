@@ -1,6 +1,8 @@
 # Support pour la présentation de {renv}
 
-## Mode d'emploi
+[Accéder au diaporama](https://mit5u.github.io/presentation-renv/#/title-slide)
+
+## Pour télécharger la présentation
 
 * Télécharger le dépôt en cliquant sur "Code" > "Download ZIP"
 * Décompresser `presentation-renv-main.zip` à l'emplacement de votre choix

@@ -1,0 +1,370 @@
+---
+title: "Présentation de {renv}"
+subtitle: "Survivre aux montées de version des packages R"
+author: "Jocelyn Béziau"
+date: "07 novembre 2022"
+institute: "Pise"
+logo: "www/hex_renv.png"
+footer: "Présentation de {renv} - Survivre aux montées de version des packages R"
+format: 
+  revealjs:
+    transition: convex
+    theme: dark
+editor: visual
+eval: false
+echo: true
+---
+
+## Pourquoi s'inquiéter de la version de nos packages ?
+
+::: notes
+-   C'était Halloween récemment, donc je vais commencer par une histoire qui fait peur, et qui peut arriver à n'importe qui, d'ailleurs c'est peut-être déjà arrivé à des gens que vous connaissez...
+-   Fin mai 2020, dépréciation des `mutate_at()` en faveur de `across()`
+-   plus de warning lors de la combinaison de facteurs avec des caractères
+-   changement du type du résultat de la combinaison de plusieurs facteurs
+-   changement de méthode pour les tests d'égalité sur data.frames (!)
+-   c'est encore pire si on saute plusieurs versions de packages avec une mise à jour (voir les changelogs combinés sur https://diffify.com/ par exemple), par exemple entre une version disponible sur l'ancien AUS (juin 2019) et une version disponible au lancement du nouvel AUSv3 (octobre 2020)
+:::
+
+Exemple sur [dplyr](https://dplyr.tidyverse.org/news/index.html#dplyr-100)
+
+. . .
+
+🥰 Des fonctionnalités nouvelles
+
+. . .
+
+🥰 Des bugs corrigés
+
+. . .
+
+🥶 Des fonctions qui disparaissent
+
+. . .
+
+🥶 Des comportements par défaut qui changent
+
+. . .
+
+🥶 Des warnings qui deviennent des erreurs (bloquantes)
+
+------------------------------------------------------------------------
+
+Les packages s'insèrent toujours dans un éco-système, plus ou moins stable et plus ou moins complexe
+
+::: notes
+-   Ici, rlang est une dépendance commune à dplyr et ggplot2 : les problèmes mentionnés précédemment se multiplient potentiellement car les packages doivent se parler entre eux !
+-   levez la main si vous n'avez jamais eu un message d'erreur mettant en cause rlang, vctrs ou pillar en essayant de mettre à jour un package du tidyverse !
+-   le diagramme pour un ensemble de packages pour un projet "de la vraie vie" est très vite illisible (surtout si l'ensemble inclut tidyverse, shiny, ...)
+-   avoir un éco-système cohérent de packages est facile à un instant T (en mettant tout à jour depuis le CRAN), beaucoup plus dur à garantir dans le temps. Pourquoi ? (voir slide suivante)
+:::
+
+![Dépendances de {dplyr} et {ggplot2} - *diagramme de Sankey tracé avec {RWsearch}*](www/sankey_dplyr_ggplot.png){fig-align="center"}
+
+------------------------------------------------------------------------
+
+![](www/what-could-possibly-go-wrong-cartman.gif){fig-align="center"}
+
+. . .
+
+☣️ `install.packages()` installe toujours la version la plus récente disponible
+
+. . .
+
+☣️ (ré-)installer un package met à jour ses dépendances (par défaut)
+
+. . .
+
+☣️ l'état de notre répertoire de packages (`.libPaths()`) n'est pas forcément stable
+
+::: notes
+-   Tous ces mécanismes peuvent rendre incompatibles ("chaotiques") les versions de nos packages, qui n'arrivent plus à se comprendre
+-   On peut donc se retrouver presque du jour au lendemain avec des packages impossibles à charger (voir slide suivante)
+:::
+
+------------------------------------------------------------------------
+
+![](www/library_ggplot_failed.png){fig-align="center"}
+
+. . .
+
+![](www/anya_namespace_failed.gif){fig-align="center"}
+
+## Comment garantir la reproductibilité de nos travaux ?
+
+. . .
+
+![](www/tout_cramer_et_reprendre_a_zero.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+-   Solutions manuelles :
+
+::: notes
+-   Conserver à la main une trace de la configuration qui marchait, c'est déjà une partie de la résolution du problème le jour où ça ne fonctionne plus. En pratique, ça peut même être suffisant, tout dépend de l'échelle de temps et de l'enjeu d'automatisation autour de notre script/application (a priori, l'environnement d'un batch qu'on lance sans jamais en regarder le contenu a besoin d'être mieux bichonné qu'un script qu'on lance à la main pour une étude ponctuelle ou des travaux exploratoires ou innovants)
+-   On peut aussi limiter les risques de dépendances chaotiques en isolant les répertoires de packages des différents projets, mais ça reste un peu laborieux de revenir à un état qui fonctionnait si une mise à jour de packages casse notre programme
+-   A priori dans tout ce que j'ai raconté jusqu'ici, vous n'avez pas appris grand-chose, donc il est grand temps de présenter ce pour quoi vous êtes toutes et tous venus aujourd'hui, à savoir le package {renv}
+:::
+
+Quels packages sont chargés dans ma session R ? Dans quelle version ?
+
+```{r}
+sessionInfo()
+devtools::install_version(package = "dplyr", version = "0.8.0")
+```
+
+. . .
+
+Isoler les répertoires de packages pour chaque projet
+
+```{r}
+chemin_packages <- "U:/SED/SED_PISE/mon_projet_critique"
+.libPaths(chemin_packages)
+.libPaths() # 1er emplacement utilisé pour install.packages() et library()
+```
+
+. . .
+
+-   Solution semi-automatique :
+
+```{r}
+renv::init()
+renv::snapshot()
+renv::restore()
+```
+
+## Prise en main de {renv}
+
+. . .
+
+www/mais_pour_quoi_faire.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+::: notes
+Package développé par Kevin Ushey (RStudio), en remplacement de {packrat} (même auteur !), qui posait à peu près autant de problèmes sur Windows qu'il en résolvait (j'exagère un peu, mais pas tant que ça, c'était très vite un gros casse-tête quand le plan ne se déroulait pas sans accroc)
+:::
+
+Que permet {renv} ? Gérer localement les dépendances dans les projets R et les rendre :
+
+-   Isolés (pas d'effets de bords sur les autres projets)
+-   Portables (partage des versions des dépendances)
+-   Reproductibles (snapshot & restore)
+
+. . .
+
+![](www/anya_wakuwaku.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+![](www/quest_ce_quon_fait.gif){fig-align="center"}
+
+. . .
+
+![](www/press_start.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+::: notes
+En pratique, je recommande d'utiliser un projet RStudio pour tout bien ranger comme il faut dans les dossiers et avoir les bonnes façons de faire "par défaut" (ce qu'on appelle parfois le "pitfall of success" : le chemin le plus facile et intuitif coïncide avec celui qui résulte de l'application des bonnes pratiques, de sorte que pour faire les choses "mal", on soit obligé de le faire exprès (parfois pour de bonnes raisons, mais dans ce paradigme, jamais par inadvertance ou amateurisme)). En l'espèce, le fait de travailler dans un projet RStudio permet d'activer renv et git en deux clics, mais stricto sensu, on n'a pas besoin de RStudio ni de git pour utiliser renv.
+
+Juste un point d'attention, pas spécifique à renv, mais sur AUS (ou n'importe quel environnement coupé d'internet), RStudio peut vous proposer d'installer pour vous des packages dont il estime avoir besoin pour faire ce que vous voulez d'après les boutons sur lesquels vous cliquez... mais il va forcément chercher à atteindre le CRAN et se planter (car on n'utilise pas le CRAN sur AUS, mais un dépôt interne qui a le même contenu, sauf que certaines fonctions de RStudio ne comprennent pas ce paramétrage et se heurtent au pare-feu comme une mouche au pare-brise). Bref, tout ça pour dire qu'il vaut mieux noter les packages que RStudio propose d'installer quand on clique quelque part, refuser leur installation par RStudio, et faire les `install.packages()` ad hoc soi-même avant de re-cliquer sur les boutons qui nous intéressent. C'est vrai pour renv, c'est vrai pour Rmarkdown, et c'est vrai pour les packages qu'il détecte via les instructions `library()` ou `nom_package:::nom_fonction()` dans les scripts enregistrés que vous avez ouverts dans RStudio.
+:::
+
+Dans RStudio :
+
+![](www/create_project.png){fig-align="center"}
+
+. . .
+
+```{r}
+# travail normal
+renv::snapshot() # pour sauvegarder les versions de packages utilisées
+# travail normal mais avec des problèmes
+renv::restore()  # pour restaurer les versions de packages sauvegardées
+```
+
+------------------------------------------------------------------------
+
+ou
+
+```{r}
+install.packages("renv")
+renv::init()
+# travail normal
+renv::snapshot()
+# travail normal mais avec des problèmes
+renv::restore()
+```
+
+. . .
+
+![](www/quoi_cest_tout.gif){fig-align="center"}
+
+## Travailler avec git et renv ?
+
+. . .
+
+![](www/yor_git_renv.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+Il suffit d'avoir dans le dépôt git :
+
+-   `renv.lock` (versions des packages à installer)
+-   `renv/activate.R` (activation de renv avec les bons paramètres)
+-   `.Rprofile` (lancer automatiquement le script précédent à chaque nouvelle session)
+
+. . .
+
+et de lancer `renv::restore()` une fois le dépôt cloné !
+
+. . .
+
+Puis `renv::snapshot()` si nécessaire, et commit/push comme d'habitude (attention aux conflits sur `renv.lock`)
+
+::: notes
+En pratique, je ne sais pas comment sont organisés vos dépôts Gitlab, mais pour le `renv.lock`, faire les commit/push vers une seule branche commune à tous les développeurs évite que chacun ait sa version de `renv.lock`, et donc de devoir résoudre des conflits ensuite. Alternativement, on peut garder une organisation avec plusieurs branches, mais il vaut mieux se mettre d'accord sur le fait que personne ne touche au `renv.lock` (donc que personne ne fasse de `renv::snapshot()`) sans concertation, sous peine de devoir gérer des problèmes lors des merges.
+:::
+
+## Travailler avec Python et renv ?
+
+. . .
+
+![](www/anya_python_renv.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+C'est possible (mais pas sur AUS a priori) =\> SSPLab
+
+. . .
+
+On peut utiliser `renv::use_python()` pour ajouter un environnement Python dédié au projet :
+
+. . .
+
+-   `reticulate::py_install()` installera les modules Python dans cet environnement
+
+. . .
+
+-   `renv::snapshot()` capturera les modules Python dans un fichier `requirements` (en parallèle des packages R sauvés dans `renv.lock`), qui pourront être téléchargés "comme d'habitude" via `renv::restore()`
+
+## Fonctionnalités avancées
+
+------------------------------------------------------------------------
+
+-   Optimiser (ou pas) l'espace disque et les temps d'installation
+
+::: notes
+Par défaut, renv fait un lien symbolique entre le répertoire de packages de votre projet et un répertoire avec tous les packages de tous les projets installés avec renv. Cela permet de partager entre plusieurs projets les packages identiques (même nom, même version), en gardant un cloisonnement (lorsque les projets génèrent des modifications dans leurs répertoires propres, le cache global est enrichi mais les autres répertoires de packages ne sont pas modifiés). On gagne aussi du temps si on doit installer un même package (au hasard, tidyverse, qui prend plusieurs minutes) dans de multiples projets : le "téléchargement" ne se fait alors pas depuis internet mais depuis ce cache global, c'est beaucoup plus rapide.
+
+Cela dit, on peut vouloir désactiver ce fonctionnement, ce qui se fait en une ligne de code
+:::
+
+. . .
+
+![](www/renv_cache.png){fig-align="center"}
+
+. . .
+
+```{r}
+renv::install()
+renv::settings$use.cache(FALSE) # désactive l'usage du cache global
+```
+
+------------------------------------------------------------------------
+
+::: notes
+Cela peut servir par exemple quand on est développeur d'un package, et qu'on souhaite gérer sans prise de tête les dépendances de notre package. Voir aussi {funspotr} pour détecter automatiquement les packages et fonctions utilisés dans un projet et {itdepends} pour mesurer à quel point les dépendances sont fortes et quel temps elles coûtent au build/installation du package
+:::
+
+-   Déduire automatiquement quels packages sont utilisés dans le projet
+
+```{r}
+renv::dependencies() # uniquement les packages chargés dans un .R/.Rnw/.Rmd
+```
+
+. . .
+
+-   Tracer l'historique des modifications de `renv.lock`
+
+```{r}
+renv::history()
+renv::revert(commit = "abc123")
+```
+
+. . .
+
+-   Modifier le comportement par défaut de {renv}
+
+```{r}
+?renv::paths # emplacements des répertoires et du cache global
+?renv::config # paramétrage au niveau utilisateur
+?renv::settings # paramétrage au niveau du projet
+```
+
+## Est-ce la panacée ?
+
+::: notes
+On résout des problèmes, mais on ne résout pas tous les problèmes !
+
+Dans tous les cas, à l'Insee chaque version de R a un cycle de vie prévu pour 3 ans. La veille est par ailleurs indispensable pour guider les travaux de maintenance et éviter de subir l'extinction de fonctions dépréciées (ou la disparition soudaine de packages retirés du CRAN).
+
+C'est d'autant plus facile de suivre le cycle de vie des packages et leurs changements disruptifs que l'on utilise un nombre raisonné de packages et que l'on comprend pourquoi ils sont dans nos projets.
+
+Sources de veille : rweekly, le blog de tidyverse, le slack grrr, le canal Tchap Entraide R SED44, ...
+:::
+
+. . .
+
+![](www/cest_propre_cest_sain.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+![](www/anya_pas_la_panacee.gif){fig-align="center"}
+
+::: fragment
+😵 Pas de gestion des dépendances système (version de R, de l'OS, ...) =\> docker !
+:::
+
+::: fragment
+🤯 {renv} reste un package, donc soumis aux règles de cycle de vie vues au début !
+:::
+
+::: fragment
+☠️ si les packages nécessaires ne sont plus disponibles sur le dépôt d'installation, ils ne pourront pas être installés !
+:::
+
+## Pour aller plus loin
+
+::: notes
+J'ai essayé de compiler des sources en français, mais malheureusement la matière première est principalement anglophone.
+
+Sur la présentation du package, il y a pas mal d'éléments redondants entre les sources, mais elles sont sur des supports différents (présentation orale enregistrée, diaporama seul, article de blog, vignette, documentation technique), donc allez butiner ce qui vous semble le plus facile à consommer ; j'ai mis aussi un lien pour les curieux qui veulent des idées d'intégration avec Docker, s'il y en a parmi vous qui veulent se faire la main avec le SSP Cloud, personnaliser son image RStudio pour y intégrer ce dont on a besoin (par exemple renv ou Python) c'est une bonne façon de se familiariser avec l'éco-système, et ça peut éventuellement servir pour les autres utilisateurs aussi, enfin bref, je digresse un peu.
+:::
+
+-   🇫🇷 [Package renv : présentation et retour d'expérience](https://elise.maigne.pages.mia.inra.fr/2021_package_renv/presentation.html#1), Élise Maigné
+-   🇬🇧 [Introduction to renv](https://rstudio.github.io/renv/articles/renv.html), Kevin Ushey
+-   🇬🇧 [renv : Project Environments for R - rstudio::conf(2020)](https://www.youtube.com/watch?v=yjlEbIDevOs), Kevin Ushey (20min) et [diaporama associé](https://kevinushey-2020-rstudio-conf.netlify.app/slides.html#1)
+-   🇬🇧 [renv sur le CRAN](https://cran.r-project.org/web/packages/renv/index.html) et [vignette de présentation](https://cran.r-project.org/web/packages/renv/vignettes/renv.html)
+-   🇬🇧 [Using renv with Docker](https://mran.revolutionanalytics.com/snapshot/2021-03-20/web/packages/renv/vignettes/docker.html)
+
+## Place aux questions !
+
+::: notes
+voilà, j'espère que ça vous aura donné envie d'adopter cette façon de travailler ; si les pistes manuelles qu'on a vues avec le `sessionInfo()` ou l'isolation du projet par le truchement de `.libPaths()` vous conviennent, c'est très bien aussi.
+
+Parmi ces trois approches, j'ai pas de bons ou de mauvais points à distribuer, c'est aussi en fonction de votre aisance avec les outils et de vos exigences de reproductibilité que vous pouvez définir vos façons de travailler et de collaborer.
+
+Dans le temps qu'il nous reste, on peut échanger à partir de vos questions, si vous voulez revenir sur des éléments de la présentation ou développer un point que je n'ai pas abordé... vous avez la parole !
+:::
+
+. . .
+
+![](www/questions_sakura.gif){fig-align="center"}
+
+------------------------------------------------------------------------
+
+## Merci pour votre attention \~
+
+![](www/curtsy-alice.gif){fig-align="center"}

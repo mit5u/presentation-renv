@@ -3,5 +3,5 @@
 .RData
 .Ruserdata
 .Rproj
-www/*
-pres_renv_files/*
+*.7z
+
